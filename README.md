@@ -5,3 +5,5 @@ Further reading ->
 - https://en.wikipedia.org/wiki/IEEE_754
 - https://en.wikipedia.org/wiki/Floating-point_arithmetic
 - https://en.wikipedia.org/wiki/Single-precision_floating-point_format
+- https://www.wikihow.com/Convert-a-Number-from-Decimal-to-IEEE-754-Floating-Point-Representation
+- https://angularindepth.com/posts/1019/the-simple-math-behind-decimal-binary-conversion-algorithms
