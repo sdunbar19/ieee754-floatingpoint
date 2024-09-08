@@ -10,7 +10,7 @@ class FloatingPoint():
         self.num_bits = 32
         self.exp_bits = 8
         self.bias = 127
-        self.rounding_mode = Mode.ROUND_NEAREST_TIES_EVEN # only version supported currently
+        self.rounding_mode = Mode.ROUND_DOWN # only version supported currently
         self.significand_bits = self.num_bits - self.exp_bits - 1
         self.sign = 0
         self.whole_bin = None
