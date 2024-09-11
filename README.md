@@ -7,3 +7,4 @@ Further reading ->
 - https://en.wikipedia.org/wiki/Single-precision_floating-point_format
 - https://www.wikihow.com/Convert-a-Number-from-Decimal-to-IEEE-754-Floating-Point-Representation
 - https://angularindepth.com/posts/1019/the-simple-math-behind-decimal-binary-conversion-algorithms
+- https://stackoverflow.com/questions/8341395/what-is-a-subnormal-floating-point-number

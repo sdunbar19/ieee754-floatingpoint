@@ -45,6 +45,14 @@ def test_binary_decimal_conversion():
     _check_decimal_conversion("078125", 18, "1000", 0)
     print("Binary conversion decimal unit tests pass")
 
+def test_floating_point_conversion():
+    fp = FloatingPoint()
+    fp.initialize("85.125")
+    array = fp.get()
+    assert "".join([str(x) for x in array]) == "01000010101010100100000000000000"
+    print("Floating point conversion tests pass")
+
 test_string_parsing()
 test_binary_whole_number_conversion()
 test_binary_decimal_conversion()
+test_floating_point_conversion()

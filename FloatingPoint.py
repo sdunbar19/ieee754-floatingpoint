@@ -12,10 +12,13 @@ class FloatingPoint():
         self.bias = 127
         self.rounding_mode = Mode.ROUND_DOWN # only version supported currently
         self.significand_bits = self.num_bits - self.exp_bits - 1
-        self.sign = 0
-        self.whole_bin = None
-        self.dec_bin = None
         self.is_overflow = False
+        self.is_underflow = False
+        self.significand = [0 for _ in range(self.significand_bits)]
+        self.exponent = [0 for _ in range(self.exp_bits)]
+        self.num_array = [0 for _ in range(self.num_bits)]
+        self.subnormal_mode = False # TODO: implement subnormals
+        self.is_initialized = False
 
     def _parse_decimal_string(self, decimal_str):
         length = len(decimal_str)
@@ -65,14 +68,14 @@ class FloatingPoint():
     # decimal string is taken as ."#####"
     # whole part should be omitted
     # result given in little endian, as well as the offset from the answer (for floating small decimals)
-    def _decimal_string_to_binary(self, decimal_str, least_sig_wn_bit):
-        decimal_range = self.significand_bits - least_sig_wn_bit - 1
+    def _decimal_string_to_binary(self, decimal_str, most_sig_wn_bit):
+        decimal_range = self.significand_bits - most_sig_wn_bit - 1
         decimal_binary = [0 for _ in range(decimal_range)]
         decimal_places = len(decimal_str)
         decimal_curr = BigInteger(decimal_str)
         if decimal_curr.int_string == "0" or decimal_range == 0:
             return decimal_binary
-        is_fixed = least_sig_wn_bit != -1 # we are locked into a whole number
+        is_fixed = most_sig_wn_bit != -1 # we are locked into a whole number
         decimal_i = 0
         actual_i = 0
         while decimal_i < decimal_range:
@@ -88,10 +91,69 @@ class FloatingPoint():
             if decimal_curr.int_string == "0":
                 break
         return (decimal_binary[::-1], actual_i - decimal_i)
+    
+    def _find_most_sig_bit_idx(self, bin_array):
+        for i in range(len(bin_array) - 1, -1, -1):
+            if bin_array[i] == 1:
+                return i
+        return -1
         
     # Inputs: A decimal string in base 10
     # Outputs: None (initializes object)
     # TODO
     def initialize(self, decimal_str: str):
         sign_bit, whole_num, dec_num = self._parse_decimal_string(decimal_str)
-        pass
+
+        # get the binary
+        whole_num_bin = self._whole_num_string_to_binary(whole_num)
+        most_sig_idx = self._find_most_sig_bit_idx(whole_num_bin)
+        decimal_bin, offset = self._decimal_string_to_binary(dec_num, most_sig_idx)
+
+        # calculate the exponent
+        exp = most_sig_idx + -1 * offset
+        min_exp = 0 - self.bias
+        max_exp = 2**self.num_bits - 1 - self.bias - 1
+        if exp < min_exp:
+            self.is_underflow = True
+            exp = 0
+        elif exp > max_exp:
+            self.is_overflow = True
+            exp = 2**self.exp_bits - 1
+        else:
+            exp += self.bias
+        exp_binary = [0 for _ in range(self.exp_bits)]
+        curr_pot = 2**(self.exp_bits - 1)
+        curr = exp
+        for i in range(self.exp_bits):
+            if curr_pot <= curr:
+                curr -= curr_pot
+                exp_binary[i] = 1
+            curr_pot /= 2
+            
+        # calculate the significand
+        if not self.is_underflow or self.is_overflow:
+            curr_significand_bit = 0
+            for i in range(most_sig_idx - 1, -1, -1):
+                self.significand[curr_significand_bit] = whole_num_bin[i]
+                curr_significand_bit += 1
+            i = len(decimal_bin) - 1
+            while curr_significand_bit < self.significand_bits:
+                self.significand[curr_significand_bit] = decimal_bin[i]
+                i -= 1
+                curr_significand_bit += 1
+
+        # fill in array
+        self.num_array[0] = sign_bit
+        for i in range(1, self.exp_bits + 1):
+            self.num_array[i] = exp_binary[i - 1]
+        for i in range(self.significand_bits):
+            self.num_array[i + self.exp_bits + 1] = self.significand[i]
+        
+        # mark as initialized
+        self.is_initialized = True
+
+    def get(self):
+        if not self.is_initialized:
+            raise RuntimeError("Cannot get float from uninitialized object!")
+        return self.num_array[::]
+        
