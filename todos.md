@@ -5,3 +5,7 @@
 - TODO: Write more tests for float, unit and component (branch)
 - TODO: Handle subnormals
 - TODO: Handle different modes
+- TODO: Convert from float
+- TODO: Rewrite tests and code to be bit agnostic
+- TODO: Tests for above
+- TODO: Threadsafe?

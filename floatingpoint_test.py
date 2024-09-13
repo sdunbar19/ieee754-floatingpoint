@@ -15,7 +15,7 @@ def test_string_parsing():
     _check_parsing("-1.000", 1, "1", "000")
     print("Decimal parsing unit test pass")
 
-def binary_arr_to_str(binary_arr):
+def little_endian_binary_arr_to_big_endian_str(binary_arr):
     bin_arr_str = "".join([str(e) for e in binary_arr[::-1]])
     while len(bin_arr_str) > 1 and bin_arr_str[0] == "0":
         bin_arr_str = bin_arr_str[1:]
@@ -23,16 +23,16 @@ def binary_arr_to_str(binary_arr):
 
 def test_binary_whole_number_conversion():
     fp_test = FloatingPoint()
-    assert binary_arr_to_str(fp_test._whole_num_string_to_binary("1000")) == "1111101000"
-    assert binary_arr_to_str(fp_test._whole_num_string_to_binary("256")) == "100000000"
-    assert binary_arr_to_str(fp_test._whole_num_string_to_binary("0000256")) == "100000000"
-    assert binary_arr_to_str(fp_test._whole_num_string_to_binary("0")) == "0"
+    assert little_endian_binary_arr_to_big_endian_str(fp_test._whole_num_string_to_binary("1000")) == "1111101000"
+    assert little_endian_binary_arr_to_big_endian_str(fp_test._whole_num_string_to_binary("256")) == "100000000"
+    assert little_endian_binary_arr_to_big_endian_str(fp_test._whole_num_string_to_binary("0000256")) == "100000000"
+    assert little_endian_binary_arr_to_big_endian_str(fp_test._whole_num_string_to_binary("0")) == "0"
     print("Binary conversion whole number unit tests pass")
 
 def _check_decimal_conversion(input_string, least_sig_wn_bit, expected_binary, expected_shift):
     fp_test = FloatingPoint()
     result = fp_test._decimal_string_to_binary(input_string, least_sig_wn_bit)
-    assert binary_arr_to_str(result[0][::-1]) == expected_binary
+    assert little_endian_binary_arr_to_big_endian_str(result[0][::-1]) == expected_binary
     assert result[1] == expected_shift
 
 def test_binary_decimal_conversion():
@@ -45,6 +45,31 @@ def test_binary_decimal_conversion():
     _check_decimal_conversion("078125", 18, "1000", 0)
     print("Binary conversion decimal unit tests pass")
 
+def _check_binary_against_decimal(bin_array, exp_dec, bias):
+    bin_str = "".join([str(x) for x in bin_array])
+    assert int(bin_str, 2) == exp_dec + bias
+
+def _test_exponent(msb_whole_num, offset, expected_dec, expected_is_overflow=False, expected_is_underflow=False):
+    fp = FloatingPoint()
+    fp._populate_exponent(msb_whole_num, offset)
+    _check_binary_against_decimal(fp._exponent, expected_dec, fp.bias)
+    assert fp._is_overflow == expected_is_overflow
+    assert fp._is_underflow == expected_is_underflow
+
+def test_exponent_calculation_population():
+    fp_dummy = FloatingPoint()
+    _test_exponent(-1, 0, -1)
+    _test_exponent(10, 0, 10)
+    _test_exponent(fp_dummy.bias, 0, fp_dummy.bias)
+    _test_exponent(fp_dummy.bias + 1, 0, fp_dummy.bias + 1, True, False)
+    _test_exponent(fp_dummy.bias * 3, 0, fp_dummy.bias + 1, True, False)
+    _test_exponent(-1, 10, -11)
+    _test_exponent(-1, 40, -41)
+    _test_exponent(-1, fp_dummy.bias - 2, -1 * fp_dummy.bias + 1)
+    _test_exponent(-1, fp_dummy.bias - 1, -1 * (fp_dummy.bias), False, True)
+    _test_exponent(-1, fp_dummy.bias, -1 * (fp_dummy.bias), False, True)
+    print("Exponent calculation unit tests pass")
+
 def test_floating_point_conversion():
     fp = FloatingPoint()
     fp.initialize("85.125")
@@ -55,4 +80,5 @@ def test_floating_point_conversion():
 test_string_parsing()
 test_binary_whole_number_conversion()
 test_binary_decimal_conversion()
+test_exponent_calculation_population()
 test_floating_point_conversion()
