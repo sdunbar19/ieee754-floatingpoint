@@ -12,13 +12,14 @@ class FloatingPoint():
         self.bias = 127
         self.rounding_mode = Mode.ROUND_DOWN # only version supported currently
         self.significand_bits = self.num_bits - self.exp_bits - 1
-        self.is_overflow = False
-        self.is_underflow = False
-        self.significand = [0 for _ in range(self.significand_bits)]
-        self.exponent = [0 for _ in range(self.exp_bits)]
-        self.num_array = [0 for _ in range(self.num_bits)]
+        self._is_overflow = False
+        self._is_underflow = False
+        self._sign_bit = 0
+        self._significand = [0 for _ in range(self.significand_bits)]
+        self._exponent = [0 for _ in range(self.exp_bits)]
+        self._float_rep = [0 for _ in range(self.num_bits)]
         self.subnormal_mode = False # TODO: implement subnormals
-        self.is_initialized = False
+        self._is_initialized = False
 
     def _parse_decimal_string(self, decimal_str):
         length = len(decimal_str)
@@ -61,7 +62,7 @@ class FloatingPoint():
                 curr_bigint = curr_bigint.subtract(binary_bigint)
                 binary[i] = 1
             elif i == self.significand_bits - 1 and compare == 1:
-                self.is_overflow = True
+                self._is_overflow = True
                 break
         return binary
     
@@ -97,11 +98,52 @@ class FloatingPoint():
             if bin_array[i] == 1:
                 return i
         return -1
+
+    def _populate_exponent(self, most_sig_idx, offset):
+        exp = most_sig_idx + -1 * offset
+        min_exp = 0 - self.bias + 1
+        max_exp = 2**self.exp_bits - 1 - self.bias - 1
+        if exp < min_exp:
+            self._is_underflow = True
+            exp = 0
+        elif exp > max_exp:
+            self._is_overflow = True
+            exp = 2**self.exp_bits - 1
+        else:
+            exp += self.bias
+        curr_pot = 2**(self.exp_bits - 1)
+        curr = exp
+        for i in range(self.exp_bits):
+            if curr_pot <= curr:
+                curr -= curr_pot
+                self._exponent[i] = 1
+            curr_pot /= 2
+
+    def _populate_significand(self, most_sig_idx, whole_num_bin, decimal_bin):
+        if not self._is_underflow or self._is_overflow:
+            curr_significand_bit = 0
+            for i in range(most_sig_idx - 1, -1, -1):
+                self._significand[curr_significand_bit] = whole_num_bin[i]
+                curr_significand_bit += 1
+            i = len(decimal_bin) - 1
+            while curr_significand_bit < self.significand_bits:
+                self._significand[curr_significand_bit] = decimal_bin[i]
+                i -= 1
+                curr_significand_bit += 1
+
+    def _populate_float_rep(self):
+        self._float_rep[0] = self._sign_bit
+        for i in range(1, self.exp_bits + 1):
+            self._float_rep[i] = self._exponent[i - 1]
+        for i in range(self.significand_bits):
+            self._float_rep[i + self.exp_bits + 1] = self._significand[i]
         
     # Inputs: A decimal string in base 10
     # Outputs: None (initializes object)
     # TODO
     def initialize(self, decimal_str: str):
+        if self._is_initialized:
+            raise RuntimeError("Floating point already initialized, please clear to re-initialize")
         sign_bit, whole_num, dec_num = self._parse_decimal_string(decimal_str)
 
         # get the binary
@@ -109,51 +151,26 @@ class FloatingPoint():
         most_sig_idx = self._find_most_sig_bit_idx(whole_num_bin)
         decimal_bin, offset = self._decimal_string_to_binary(dec_num, most_sig_idx)
 
-        # calculate the exponent
-        exp = most_sig_idx + -1 * offset
-        min_exp = 0 - self.bias
-        max_exp = 2**self.num_bits - 1 - self.bias - 1
-        if exp < min_exp:
-            self.is_underflow = True
-            exp = 0
-        elif exp > max_exp:
-            self.is_overflow = True
-            exp = 2**self.exp_bits - 1
-        else:
-            exp += self.bias
-        exp_binary = [0 for _ in range(self.exp_bits)]
-        curr_pot = 2**(self.exp_bits - 1)
-        curr = exp
-        for i in range(self.exp_bits):
-            if curr_pot <= curr:
-                curr -= curr_pot
-                exp_binary[i] = 1
-            curr_pot /= 2
-            
-        # calculate the significand
-        if not self.is_underflow or self.is_overflow:
-            curr_significand_bit = 0
-            for i in range(most_sig_idx - 1, -1, -1):
-                self.significand[curr_significand_bit] = whole_num_bin[i]
-                curr_significand_bit += 1
-            i = len(decimal_bin) - 1
-            while curr_significand_bit < self.significand_bits:
-                self.significand[curr_significand_bit] = decimal_bin[i]
-                i -= 1
-                curr_significand_bit += 1
+        self._sign_bit = sign_bit
+        self._populate_exponent(most_sig_idx, offset)
+        self._populate_significand(most_sig_idx, whole_num_bin, decimal_bin)
+        self._populate_float_rep()
+        self._is_initialized = True
 
-        # fill in array
-        self.num_array[0] = sign_bit
-        for i in range(1, self.exp_bits + 1):
-            self.num_array[i] = exp_binary[i - 1]
-        for i in range(self.significand_bits):
-            self.num_array[i + self.exp_bits + 1] = self.significand[i]
-        
-        # mark as initialized
-        self.is_initialized = True
+    def is_initialized(self):
+        return self._is_initialized
 
     def get(self):
-        if not self.is_initialized:
+        if not self._is_initialized:
             raise RuntimeError("Cannot get float from uninitialized object!")
-        return self.num_array[::]
+        return self._float_rep[::]
+    
+    def clear(self):
+        self._is_initialized = False
+        self._is_overflow = False
+        self._is_underflow = False
+        self._sign_bit = 0
+        self._significand = [0 for _ in range(self.significand_bits)]
+        self._exponent = [0 for _ in range(self.exp_bits)]
+        self._float_rep = [0 for _ in range(self.num_bits)]
         
