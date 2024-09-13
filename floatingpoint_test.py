@@ -70,6 +70,25 @@ def test_exponent_calculation_population():
     _test_exponent(-1, fp_dummy.bias, -1 * (fp_dummy.bias), False, True)
     print("Exponent calculation unit tests pass")
 
+def test_significand_population():
+    fp_dummy = FloatingPoint()
+    wnum_bin = [0 for _ in range(fp_dummy.significand_bits)]
+    dec_bin = [0 for _ in range(fp_dummy.significand_bits)]
+    for i in range(10):
+        wnum_bin[i] = 1
+    for i in range(23):
+        dec_bin[i] = 1
+    wnum_bin[0] = 0
+    dec_bin[9] = 0
+    fp_dummy._populate_significand(9, wnum_bin, dec_bin)
+    print(fp_dummy._significand)
+    for i in range(len(fp_dummy._significand)):
+        if i == 8 or i == 22:
+            assert fp_dummy._significand[i] == 0
+        else:
+            assert fp_dummy._significand[i] == 1
+    print("Significand population unit tests pass")
+
 def test_floating_point_conversion():
     fp = FloatingPoint()
     fp.initialize("85.125")
@@ -81,4 +100,5 @@ test_string_parsing()
 test_binary_whole_number_conversion()
 test_binary_decimal_conversion()
 test_exponent_calculation_population()
+test_significand_population()
 test_floating_point_conversion()
