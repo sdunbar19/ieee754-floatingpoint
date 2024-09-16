@@ -39,6 +39,15 @@ class FloatingPoint():
         if decimal_idx + 1 < length:
             decimal_num = decimal_str[decimal_idx + 1:]
         return sign_bit, whole_num, decimal_num
+    
+    def _check_is_overflow(self, f_strings, max_exp, whole_str):
+        larger_exp = f_strings[max_exp + 1].strip()
+        larger_exp_str = BigInteger(larger_exp)
+        largest = larger_exp_str.subtract(BigInteger("1"))
+        if largest.compare(BigInteger(whole_str)) == -1:
+            self._is_overflow = True
+            return True
+        return False
 
     # answer is in little endian
     def _whole_num_string_to_binary(self, whole_str):
@@ -49,33 +58,46 @@ class FloatingPoint():
         for line in f.readlines():
             f_strings[i] = line
             i += 1
-        binary = [0 for _ in range(self.significand_bits)]
+        binary = [0 for _ in range(self.significand_bits + 1)]
         curr_bigint = whole_bigint
-        for i in range(self.significand_bits - 1, -1, -1):
-            binary_string = f_strings[i].strip()
-            binary_bigint = BigInteger(binary_string)
-            compare = curr_bigint.compare(binary_bigint)
-            if compare == 0:
-                binary[i] = 1
-                break
-            elif compare == 1:
-                curr_bigint = curr_bigint.subtract(binary_bigint)
-                binary[i] = 1
-            elif i == self.significand_bits - 1 and compare == 1:
-                self._is_overflow = True
-                break
-        return binary
+        max_exponent = 2**self.exp_bits - 2 - self.bias 
+        most_sig_bit = -1
+        if not self._check_is_overflow(f_strings, max_exponent, whole_str):
+            actual_i = self.significand_bits
+            is_fixed = False
+            for i in range(max_exponent, -1, -1):
+                if actual_i < 0:
+                    break
+                binary_string = f_strings[i].strip()
+                binary_bigint = BigInteger(binary_string)
+                compare = curr_bigint.compare(binary_bigint)
+                if compare == 0:
+                    binary[actual_i] = 1
+                    if not is_fixed:
+                        most_sig_bit = i
+                    break
+                elif compare == 1:
+                    curr_bigint = curr_bigint.subtract(binary_bigint)
+                    binary[actual_i] = 1
+                if binary[actual_i] == 1 and not is_fixed:
+                    is_fixed = True
+                    most_sig_bit = i
+                if is_fixed or i < self.significand_bits + 1:
+                    actual_i -= 1
+        return binary, most_sig_bit
     
     # decimal string is taken as ."#####"
     # whole part should be omitted
     # result given in little endian, as well as the offset from the answer (for floating small decimals)
     def _decimal_string_to_binary(self, decimal_str, most_sig_wn_bit):
-        decimal_range = self.significand_bits - most_sig_wn_bit - 1
+        decimal_range = self.significand_bits - most_sig_wn_bit
         decimal_binary = [0 for _ in range(decimal_range)]
+        if decimal_range <= 0:
+            return [], 0
         decimal_places = len(decimal_str)
         decimal_curr = BigInteger(decimal_str)
         if decimal_curr.int_string == "0" or decimal_range == 0:
-            return decimal_binary
+            return decimal_binary, 0
         is_fixed = most_sig_wn_bit != -1 # we are locked into a whole number
         decimal_i = 0
         actual_i = 0
@@ -92,12 +114,6 @@ class FloatingPoint():
             if decimal_curr.int_string == "0":
                 break
         return (decimal_binary[::-1], actual_i - decimal_i)
-    
-    def _find_most_sig_bit_idx(self, bin_array):
-        for i in range(len(bin_array) - 1, -1, -1):
-            if bin_array[i] == 1:
-                return i
-        return -1
 
     def _populate_exponent(self, most_sig_idx, offset):
         exp = most_sig_idx + -1 * offset
@@ -122,11 +138,11 @@ class FloatingPoint():
     def _populate_significand(self, most_sig_idx, whole_num_bin, decimal_bin):
         if not self._is_underflow or self._is_overflow:
             curr_significand_bit = 0
-            for i in range(most_sig_idx - 1, -1, -1):
+            for i in range(min(most_sig_idx, self.significand_bits) - 1, -1, -1):
                 self._significand[curr_significand_bit] = whole_num_bin[i]
                 curr_significand_bit += 1
             i = len(decimal_bin) - 1
-            while curr_significand_bit < self.significand_bits:
+            while i >= 0 and curr_significand_bit < self.significand_bits:
                 self._significand[curr_significand_bit] = decimal_bin[i]
                 i -= 1
                 curr_significand_bit += 1
@@ -147,13 +163,12 @@ class FloatingPoint():
         sign_bit, whole_num, dec_num = self._parse_decimal_string(decimal_str)
 
         # get the binary
-        whole_num_bin = self._whole_num_string_to_binary(whole_num)
-        most_sig_idx = self._find_most_sig_bit_idx(whole_num_bin)
-        decimal_bin, offset = self._decimal_string_to_binary(dec_num, most_sig_idx)
+        whole_num_bin, most_sig_wn_bit = self._whole_num_string_to_binary(whole_num)
+        decimal_bin, offset = self._decimal_string_to_binary(dec_num, most_sig_wn_bit)
 
         self._sign_bit = sign_bit
-        self._populate_exponent(most_sig_idx, offset)
-        self._populate_significand(most_sig_idx, whole_num_bin, decimal_bin)
+        self._populate_exponent(most_sig_wn_bit, offset)
+        self._populate_significand(most_sig_wn_bit, whole_num_bin, decimal_bin)
         self._populate_float_rep()
         self._is_initialized = True
 
