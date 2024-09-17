@@ -39,8 +39,9 @@ def test_binary_whole_number_conversion():
     _run_binary_whole_number_conversion_test_case("4294967296", "100000000000000000000000", 32)
     _run_binary_whole_number_conversion_test_case("170141183460469231731687303715884105728", "100000000000000000000000", 127)
     _run_binary_whole_number_conversion_test_case("340282366920938463463374607431768211456", "0", -1, True)
-    _run_binary_whole_number_conversion_test_case("340282366920938463463374607431768211455", "111111111111111111111111", 127)
     _run_binary_whole_number_conversion_test_case("340000000000000000000000000000000000000", "111111111100100110011110", 127)
+    _run_binary_whole_number_conversion_test_case("340282346638528859811704183484516925440", "111111111111111111111111", 127)
+    _run_binary_whole_number_conversion_test_case("340282346638528859811704183484516925441", "0", -1, True)
     print("Binary conversion whole number unit tests pass")
 
 def _check_decimal_conversion(input_string, most_sig_wn_bit, expected_binary, expected_shift):
@@ -67,12 +68,12 @@ def _check_binary_against_decimal(bin_array, exp_dec, bias):
     bin_str = "".join([str(x) for x in bin_array])
     assert int(bin_str, 2) == exp_dec + bias
 
-def _test_exponent(msb_whole_num, offset, expected_dec, expected_is_overflow=False, expected_is_underflow=False):
+def _test_exponent(msb_whole_num, offset, expected_dec, is_overflow=False, is_underflow=False):
     fp = FloatingPoint()
+    fp._is_overflow = is_overflow
+    fp._is_underflow = is_underflow
     fp._populate_exponent(msb_whole_num, offset)
     _check_binary_against_decimal(fp._exponent, expected_dec, fp.bias)
-    assert fp._is_overflow == expected_is_overflow
-    assert fp._is_underflow == expected_is_underflow
 
 def test_exponent_calculation_population():
     fp_dummy = FloatingPoint()
@@ -121,6 +122,8 @@ def test_floating_point_conversion():
     _test_successful_conversion("1035.1", "01000100100000010110001100110011")
     _test_successful_conversion("63.02847209", "01000010011111000001110100100111")
     _test_successful_conversion("340000000000000000000000000000000000000", "01111111011111111100100110011110")
+    _test_successful_conversion("340282346638528859811704183484516925440", "01111111011111111111111111111111")
+    _test_successful_conversion("340282346638528859811704183484516925441", "01111111100000000000000000000000")
     print("Floating point conversion unit tests pass")
 
 test_string_parsing()

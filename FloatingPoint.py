@@ -41,10 +41,12 @@ class FloatingPoint():
         return sign_bit, whole_num, decimal_num
     
     def _check_is_overflow(self, f_strings, max_exp, whole_str):
-        larger_exp = f_strings[max_exp + 1].strip()
-        larger_exp_str = BigInteger(larger_exp)
-        largest = larger_exp_str.subtract(BigInteger("1"))
-        if largest.compare(BigInteger(whole_str)) == -1:
+        largest_value = BigInteger("0")
+        for i in range(self.significand_bits + 1):
+            shift_i = i + self.bias - self.significand_bits
+            large_exp = BigInteger(f_strings[shift_i].strip())
+            largest_value = large_exp.add(largest_value)
+        if largest_value.compare(BigInteger(whole_str)) == -1:
             self._is_overflow = True
             return True
         return False
@@ -118,13 +120,11 @@ class FloatingPoint():
     def _populate_exponent(self, most_sig_idx, offset):
         exp = most_sig_idx + -1 * offset
         min_exp = 0 - self.bias + 1
-        max_exp = 2**self.exp_bits - 1 - self.bias - 1
-        if exp < min_exp:
+        if self._is_overflow:
+            exp = 2**self.exp_bits - 1
+        elif exp < min_exp:
             self._is_underflow = True
             exp = 0
-        elif exp > max_exp:
-            self._is_overflow = True
-            exp = 2**self.exp_bits - 1
         else:
             exp += self.bias
         curr_pot = 2**(self.exp_bits - 1)
