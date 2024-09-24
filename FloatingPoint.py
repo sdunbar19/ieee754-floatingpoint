@@ -40,7 +40,7 @@ class FloatingPoint():
             decimal_num = decimal_str[decimal_idx + 1:]
         return sign_bit, whole_num, decimal_num
     
-    def _check_is_overflow(self, f_strings, max_exp, whole_str):
+    def _check_is_overflow(self, f_strings, whole_str):
         largest_value = BigInteger("0")
         for i in range(self.significand_bits + 1):
             shift_i = i + self.bias - self.significand_bits
@@ -64,7 +64,7 @@ class FloatingPoint():
         curr_bigint = whole_bigint
         max_exponent = 2**self.exp_bits - 2 - self.bias 
         most_sig_bit = -1
-        if not self._check_is_overflow(f_strings, max_exponent, whole_str):
+        if not self._check_is_overflow(f_strings, whole_str):
             actual_i = self.significand_bits
             is_fixed = False
             for i in range(max_exponent, -1, -1):
@@ -103,7 +103,11 @@ class FloatingPoint():
         is_fixed = most_sig_wn_bit != -1 # we are locked into a whole number
         decimal_i = 0
         actual_i = 0
-        while decimal_i < decimal_range:
+        while decimal_i < decimal_range and actual_i < self.bias + self.significand_bits + 1:
+            actual_i += 1
+            if actual_i == self.bias and not is_fixed:
+                self._is_underflow = True
+                return [0 for _ in range(decimal_range)], self.bias - 1
             decimal_curr = decimal_curr.add(decimal_curr)
             if len(decimal_curr.int_string) > decimal_places:
                 decimal_curr = BigInteger(decimal_curr.int_string[1:])
@@ -112,7 +116,6 @@ class FloatingPoint():
                 decimal_i += 1
             elif is_fixed:
                 decimal_i += 1
-            actual_i += 1
             if decimal_curr.int_string == "0":
                 break
         return (decimal_binary[::-1], actual_i - decimal_i)
@@ -122,11 +125,9 @@ class FloatingPoint():
         min_exp = 0 - self.bias + 1
         if self._is_overflow:
             exp = 2**self.exp_bits - 1
-        elif exp < min_exp:
-            self._is_underflow = True
+        elif self._is_underflow:
             exp = 0
-        else:
-            exp += self.bias
+        exp += self.bias
         curr_pot = 2**(self.exp_bits - 1)
         curr = exp
         for i in range(self.exp_bits):

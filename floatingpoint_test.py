@@ -44,11 +44,12 @@ def test_binary_whole_number_conversion():
     _run_binary_whole_number_conversion_test_case("340282346638528859811704183484516925441", "0", -1, True)
     print("Binary conversion whole number unit tests pass")
 
-def _check_decimal_conversion(input_string, most_sig_wn_bit, expected_binary, expected_shift):
+def _check_decimal_conversion(input_string, most_sig_wn_bit, expected_binary, expected_shift, is_underflow=False):
     fp_test = FloatingPoint()
     result = fp_test._decimal_string_to_binary(input_string, most_sig_wn_bit)
     assert little_endian_binary_arr_to_big_endian_str(result[0][::-1]) == expected_binary
     assert result[1] == expected_shift
+    assert fp_test._is_underflow == is_underflow
 
 def test_binary_decimal_conversion():
     _check_decimal_conversion("125", -1, "1", 2)
@@ -62,6 +63,10 @@ def test_binary_decimal_conversion():
     _check_decimal_conversion("75", 23, "0", 0)
     _check_decimal_conversion("75", 22, "1", 0)
     _check_decimal_conversion("078125", 100, "0", 0)
+    _check_decimal_conversion("00390625", -1, "1", 7)
+    _check_decimal_conversion("0" * 37 + "11754943508222875079687365372222456778186655567720875215088", -1, "1", 125, False)
+    _check_decimal_conversion("0" * 37 + "11754943508222875079687365372222456778186655567720875215087", -1, "0", 126, True)
+    _check_decimal_conversion("0" * 99 + "1", -1, "0", 126, True)
     print("Binary conversion decimal unit tests pass")
 
 def _check_binary_against_decimal(bin_array, exp_dec, bias):
@@ -85,8 +90,8 @@ def test_exponent_calculation_population():
     _test_exponent(-1, 10, -11)
     _test_exponent(-1, 40, -41)
     _test_exponent(-1, fp_dummy.bias - 2, -1 * fp_dummy.bias + 1)
-    _test_exponent(-1, fp_dummy.bias - 1, -1 * (fp_dummy.bias), False, True)
-    _test_exponent(-1, fp_dummy.bias, -1 * (fp_dummy.bias), False, True)
+    _test_exponent(-1, fp_dummy.bias - 1, 0, False, True)
+    _test_exponent(-1, fp_dummy.bias, 0, False, True)
     print("Exponent calculation unit tests pass")
 
 def test_significand_population():
