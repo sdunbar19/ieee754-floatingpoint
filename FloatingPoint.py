@@ -10,7 +10,7 @@ class FloatingPoint():
         self.num_bits = 32
         self.exp_bits = 8
         self.bias = 127
-        self.rounding_mode = Mode.ROUND_DOWN # only version supported currently
+        self.rounding_mode = Mode.NO_ROUND # only version supported currently
         self.significand_bits = self.num_bits - self.exp_bits - 1
         self._is_overflow = False
         self._is_underflow = False
@@ -171,6 +171,17 @@ class FloatingPoint():
         self._populate_significand(most_sig_wn_bit, whole_num_bin, decimal_bin)
         self._populate_float_rep()
         self._is_initialized = True
+
+    # TODO
+    def initialize_from_float_object(self, float_rep):
+        pass
+        # self._is_overflow = False
+        # self._is_underflow = False
+        # self._sign_bit = 0
+        # self._significand = [0 for _ in range(self.significand_bits)]
+        # self._exponent = [0 for _ in range(self.exp_bits)]
+        # self._float_rep = [0 for _ in range(self.num_bits)]
+        # self._is_initialized = False
 
     def is_initialized(self):
         return self._is_initialized

@@ -1,5 +1,7 @@
 - TODO: Convert from float
+- TODO: Addition, subtraction, multiplication, division, exponent(?)
 - TODO: Handle different rounding modes
+- TODO: Have float give you error based on rounding (eg value could be between x and y)
 - TODO: Handle subnormals
 - TODO: Rewrite tests and code to be bit agnostic
 - TODO: Tests for above
