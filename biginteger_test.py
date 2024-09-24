@@ -1,6 +1,5 @@
 from BigInteger import BigInteger
 import random
-from tqdm import tqdm
 
 def _assert_sub(bigger, smaller):
     assert int(BigInteger(bigger).subtract(BigInteger(smaller)).int_string) == int(bigger) - int(smaller)
