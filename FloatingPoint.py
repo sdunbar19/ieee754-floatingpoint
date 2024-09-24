@@ -157,8 +157,7 @@ class FloatingPoint():
         
     # Inputs: A decimal string in base 10
     # Outputs: None (initializes object)
-    # TODO
-    def initialize(self, decimal_str: str):
+    def initialize_from_decimal(self, decimal_str: str):
         if self._is_initialized:
             raise RuntimeError("Floating point already initialized, please clear to re-initialize")
         sign_bit, whole_num, dec_num = self._parse_decimal_string(decimal_str)

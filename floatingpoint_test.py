@@ -114,7 +114,7 @@ def test_significand_population():
 
 def _test_successful_conversion(dec_str, expected_bin_str):
     fp = FloatingPoint()
-    fp.initialize(dec_str)
+    fp.initialize_from_decimal(dec_str)
     array = fp.get()
     # print(len(array))
     # print("".join([str(x) for x in array]))
